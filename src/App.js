@@ -8,14 +8,16 @@ class GrafoReact extends React.Component {
     super(props);
 
     this.state = {
-      data: this.generarDatosGrafo(),
+      cantidadNodosTemp: 12,
+      limite: 10, // Nuevo estado para almacenar el límite
+      data: this.generarDatosGrafo(12),
       matrizAdyacencia: null,
       filaSeleccionada: null,
     };
+    
   }
 
-  generarDatosGrafo() {
-    const nodos = 12;
+  generarDatosGrafo(nodos) {
     let nodosData = [];
     let conexionesData = [];
 
@@ -35,13 +37,12 @@ class GrafoReact extends React.Component {
     return { nodos: nodosData, conexiones: conexionesData };
   }
 
-  generarMatrizAdyacencia() {
-    const tamano = 12;
+  generarMatrizAdyacencia(nodos) {
     const matriz = [];
 
-    for (let i = 0; i < tamano; i++) {
+    for (let i = 0; i < nodos; i++) {
       const fila = [];
-      for (let j = 0; j < tamano; j++) {
+      for (let j = 0; j < nodos; j++) {
         if (i === j) {
           fila.push(null);
         } else {
@@ -53,8 +54,8 @@ class GrafoReact extends React.Component {
       matriz.push(fila);
     }
 
-    for (let i = 0; i < tamano; i++) {
-      for (let j = i + 1; j < tamano; j++) {
+    for (let i = 0; i < nodos; i++) {
+      for (let j = i + 1; j < nodos; j++) {
         matriz[j][i] = matriz[i][j];
       }
     }
@@ -63,28 +64,113 @@ class GrafoReact extends React.Component {
   }
 
   componentDidMount() {
-    const matrizAdyacencia = this.generarMatrizAdyacencia();
+    const { cantidadNodosTemp } = this.state;
+    const matrizAdyacencia = this.generarMatrizAdyacencia(cantidadNodosTemp);
     this.setState({ matrizAdyacencia });
   }
 
+  handleCantidadNodosChange = (event) => {
+    const cantidadNodosTemp = parseInt(event.target.value, 10);
+    this.setState({ cantidadNodosTemp });
+  };
+
+  handleGenerarGrafo = () => {
+    const { cantidadNodosTemp } = this.state;
+    if (cantidadNodosTemp >= 1) {
+      this.setState({
+        cantidadNodos: cantidadNodosTemp,
+        data: this.generarDatosGrafo(cantidadNodosTemp),
+        matrizAdyacencia: this.generarMatrizAdyacencia(cantidadNodosTemp),
+        filaSeleccionada: null,
+      });
+    }
+  };
+
   handleFilaSeleccionada = (event) => {
     const filaSeleccionada = parseInt(event.target.value, 10);
-    this.setState({ filaSeleccionada });
+    this.setState({ filaSeleccionada }, () => {
+      this.enviarValoresNoNulos();
+    });
   };
+  
+  enviarValoresNoNulos() {
+    const { filaSeleccionada, matrizAdyacencia } = this.state;
+    const valoresNoNulos = matrizAdyacencia[filaSeleccionada]
+      .filter((valor) => valor !== null)
+      .map((valor) => `(${valor[0]}, ${valor[1]})`);
+  
+    // Enviar los valores a la URL proporcionada
+    this.realizarPeticion(valoresNoNulos);
+  }
+  
+  realizarPeticion(valores) {
+    const { limite } = this.state;
+
+    // Construir el objeto de datos
+    const data = {
+      array: `[${valores.join(", ")}]`,
+      limit: limite.toString()
+    };
+  
+    console.log("VALORES A MANDAR", data);
+  
+    // Realizar la petición a la URL
+    fetch("https://artificiallove.azurewebsites.net/api/corazones?code=WybpZ3EPEt1b95QJGGC2JAe1HSOertD9CAoDa42kdwCAAzFuJ3_2zw%3D%3D", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        const formattedResult = `Resultado del servidor:\n` +
+          `Sumatoria de similitud: ${result.resultado_valor}\n` +
+          `Usuarios: [${result.resultado_elementos.join(', ')}]\n` +
+          `Tiempo: ${result.tiempo} segundos`;
+
+        alert(formattedResult);
+      })
+      .catch((error) => {
+        console.error("Error al realizar la petición:", error);
+      });
+  }
+
+  handleLimiteChange = (event) => {
+    const limite = parseInt(event.target.value, 10);
+    this.setState({ limite });
+  };
+  
 
   render() {
     const { nodos, conexiones } = this.state.data;
-    const { matrizAdyacencia, filaSeleccionada } = this.state;
+    const { matrizAdyacencia, filaSeleccionada, cantidadNodosTemp, limite } = this.state;
 
     return (
       <div className="App">
         <h1>Grafo React</h1>
-        <XYPlot width={400} height={400}>
-          <MarkSeries
-            className="mark-series-example"
-            size={5}
-            data={nodos}
+
+        <div>
+          <label htmlFor="cantidadNodos">Cantidad de Nodos:</label>
+          <input
+            type="number"
+            id="cantidadNodos"
+            value={cantidadNodosTemp}
+            onChange={this.handleCantidadNodosChange}
           />
+          <label htmlFor="limite">Límite:</label>
+          <input
+            type="number"
+            id="limite"
+            value={limite}
+            onChange={this.handleLimiteChange}
+          />
+          <button onClick={this.handleGenerarGrafo}>Generar Grafo</button>
+        </div>
+
+
+        <XYPlot width={400} height={400}>
+          <MarkSeries className="mark-series-example" size={5} data={nodos} />
           {conexiones.map((conexion, index) => (
             <LineSeries key={index} data={conexion.x.map((x, i) => ({ x, y: conexion.y[i] }))} />
           ))}
@@ -134,7 +220,8 @@ class GrafoReact extends React.Component {
         )}
       </div>
     );
-  }
+  } //Render
+
 }
 
 export default GrafoReact;

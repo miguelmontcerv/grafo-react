@@ -28,6 +28,12 @@
   color: #61dafb;
 }
 
+/* Dentro del archivo GrafoReact.css o en la hoja de estilos correspondiente */
+.matriz-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
