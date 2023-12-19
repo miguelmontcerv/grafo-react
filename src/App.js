@@ -126,7 +126,7 @@ class GrafoReact extends React.Component {
       .then((result) => {
         const formattedResult = `Resultado del servidor:\n` +
           `Sumatoria de similitud: ${result.resultado_valor}\n` +
-          `Usuarios: [${result.resultado_elementos.join(', ')}]\n` +
+          `Usuarios: [${result.resultado_elementos.join('--')}]\n` +
           `Tiempo: ${result.tiempo} segundos`;
 
         alert(formattedResult);
